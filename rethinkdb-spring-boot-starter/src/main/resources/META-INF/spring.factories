@@ -1,0 +1,4 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+at.d4m.spring.data.rethinkdb.autoconfiguration.RethinkDbAutoConfiguration,\
+at.d4m.spring.data.rethinkdb.autoconfiguration.RethinkDbDataAutoConfiguration,\
+at.d4m.spring.data.rethinkdb.autoconfiguration.RethinkDbRepositoriesAutoConfiguration
