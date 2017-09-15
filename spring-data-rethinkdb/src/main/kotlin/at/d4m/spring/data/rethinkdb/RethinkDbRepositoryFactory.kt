@@ -1,21 +1,27 @@
 package at.d4m.spring.data.rethinkdb
 
+import at.d4m.spring.data.rethinkdb.mapping.MappingRethinkDbEntityInformation
+import at.d4m.spring.data.rethinkdb.mapping.RethinkDbEntityInformation
+import at.d4m.spring.data.rethinkdb.mapping.RethinkDbPersistentEntity
+import at.d4m.spring.data.rethinkdb.template.RethinkDbOperations
 import org.springframework.data.repository.core.EntityInformation
 import org.springframework.data.repository.core.RepositoryInformation
 import org.springframework.data.repository.core.RepositoryMetadata
-import org.springframework.data.repository.core.support.ReflectionEntityInformation
 import org.springframework.data.repository.core.support.RepositoryFactorySupport
 
 /**
  * @author Christoph Muck
  */
 class RethinkDbRepositoryFactory(
-        val operations: RethinkDbOperations
+        private val operations: RethinkDbOperations
 ) : RepositoryFactorySupport() {
 
-    override fun <T : Any?, ID : Any?> getEntityInformation(domainClass: Class<T>?): EntityInformation<T, ID> {
-        val entityInformation = ReflectionEntityInformation<T, ID>(domainClass)
-        return entityInformation
+    val mappingContext = operations.converter.mappingContext
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : Any?, ID : Any?> getEntityInformation(domainClass: Class<T>?): RethinkDbEntityInformation<T, ID> {
+        val persistentEntity = mappingContext.getRequiredPersistentEntity(domainClass) as RethinkDbPersistentEntity<T>
+        return MappingRethinkDbEntityInformation<T, ID>(persistentEntity)
     }
 
     override fun getTargetRepository(metadata: RepositoryInformation): Any {
