@@ -4,7 +4,6 @@ import at.d4m.spring.data.rethinkdb.mapping.RethinkDbEntityInformation
 import at.d4m.spring.data.rethinkdb.template.RethinkDbOperations
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.CrudRepository
-import org.springframework.util.Assert
 import java.util.*
 
 /**
@@ -20,8 +19,7 @@ class SimpleRethinkDbRepository<T : Any, ID>(
     }
 
     override fun delete(entity: T) {
-        Assert.notNull(entity, "Entity is null!")
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        deleteById(entityInformation.getRequiredId(entity))
     }
 
     override fun findAll(): List<T> {
@@ -29,19 +27,19 @@ class SimpleRethinkDbRepository<T : Any, ID>(
     }
 
     override fun count(): Long {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return findAll().size.toLong()
     }
 
     override fun deleteAll() {
         rethinkDbOperations.remove(entityInformation.tableName)
     }
 
-    override fun deleteAll(entities: Iterable<T>?) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun deleteAll(entities: Iterable<T>) {
+        entities.forEach { delete(it) }
     }
 
-    override fun <S : T> saveAll(entities: Iterable<S>?): Iterable<S> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun <S : T> saveAll(entities: Iterable<S>): Iterable<S> {
+        return entities.map { save(it) }
     }
 
     override fun findById(id: ID): Optional<T> {
@@ -55,14 +53,14 @@ class SimpleRethinkDbRepository<T : Any, ID>(
     }
 
     override fun existsById(id: ID): Boolean {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return findById(id).isPresent
     }
 
     override fun deleteById(id: ID) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        rethinkDbOperations.remove(entityInformation.tableName, id)
     }
 
-    override fun findAllById(ids: Iterable<ID>?): Iterable<T> {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun findAllById(ids: Iterable<ID>): Iterable<T> {
+        return ids.mapNotNull { findById(it).orElse(null) }
     }
 }

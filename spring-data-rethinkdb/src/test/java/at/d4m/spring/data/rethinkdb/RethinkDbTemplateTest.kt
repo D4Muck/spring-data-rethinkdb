@@ -3,6 +3,10 @@ package at.d4m.spring.data.rethinkdb
 import at.d4m.rxrethinkdb.Database
 import at.d4m.rxrethinkdb.RethinkDBClient
 import at.d4m.rxrethinkdb.Table
+import at.d4m.rxrethinkdb.query.DefaultQueryResponse
+import at.d4m.rxrethinkdb.query.Query
+import at.d4m.rxrethinkdb.query.QueryResponse
+import at.d4m.rxrethinkdb.query.components.delete
 import at.d4m.spring.data.rethinkdb.convert.RethinkDbConverter
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbMappingContext
 import at.d4m.spring.data.rethinkdb.template.RethinkDbOperations
@@ -89,7 +93,7 @@ internal class RethinkDbTemplateTest {
         val cursor: Cursor<Map<String, Any>> = mock {
             on { toList() } doReturn results
         }
-        whenever(table.find()).thenReturn(cursor)
+        whenever(table.executeQuery()).thenReturn(DefaultQueryResponse(cursor))
         val entityClass = SomeClass::class.java
         both.forEach { (entity, map) ->
             whenever(converter.read(entityClass, map.toMutableMap())).thenReturn(entity)
@@ -101,7 +105,7 @@ internal class RethinkDbTemplateTest {
     @Test
     fun testRemove() {
         template.remove(table = tableName)
-        verify(table).removeAll()
+        verify(table).executeQuery(Query.delete())
     }
 
 }

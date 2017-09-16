@@ -2,6 +2,8 @@ package at.d4m.spring.data.rethinkdb.template
 
 import at.d4m.rxrethinkdb.Database
 import at.d4m.rxrethinkdb.RethinkDBClient
+import at.d4m.rxrethinkdb.query.Query
+import at.d4m.rxrethinkdb.query.components.insert
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbMappingContext
 
 class DefaultRethinkDbTemplateHelper : RethinkDbTemplateHelper {
@@ -15,7 +17,7 @@ class DefaultRethinkDbTemplateHelper : RethinkDbTemplateHelper {
 
     @Suppress("UNCHECKED_CAST")
     override fun insertMap(tableName: String, map: Map<String, Any>, db: Database): String? {
-        val saveResult = db.getTableWithName(tableName).insert(map)
+        val saveResult = db.getTableWithName(tableName).executeQuery(Query.insert(map)).responseAsMap()
         return (saveResult["generated_keys"] as? List<String>)?.firstOrNull()
     }
 

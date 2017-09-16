@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.data.annotation.Id
+import org.springframework.data.mapping.model.MappingInstantiationException
 
 /**
  * @author Christoph Muck
@@ -32,7 +33,9 @@ internal class MappingRethinkDbConverterTest {
     @Test
     fun testReadDataClassConstructorParamNotAvailable() {
         val id = "1234908719-12390487132"
-        testReadClass(DataClassToRead(id, 0), mutableMapOf("id" to id))
+        Assertions.assertThrows(MappingInstantiationException::class.java) {
+            testReadClass(DataClassToRead(id, 0), mutableMapOf("id" to id))
+        }
     }
 
     @Test

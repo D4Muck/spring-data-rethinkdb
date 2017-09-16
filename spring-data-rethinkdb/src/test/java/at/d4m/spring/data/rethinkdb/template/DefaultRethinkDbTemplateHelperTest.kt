@@ -3,6 +3,9 @@ package at.d4m.spring.data.rethinkdb.template
 import at.d4m.rxrethinkdb.Database
 import at.d4m.rxrethinkdb.RethinkDBClient
 import at.d4m.rxrethinkdb.Table
+import at.d4m.rxrethinkdb.query.DefaultQueryResponse
+import at.d4m.rxrethinkdb.query.Query
+import at.d4m.rxrethinkdb.query.components.insert
 import at.d4m.spring.data.rethinkdb.mapping.BasicRethinkDbPersistentEntity
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbMappingContext
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbPersistentProperty
@@ -98,7 +101,7 @@ internal class DefaultRethinkDbTemplateHelperTest {
         val idList = listOf(id)
         val result = mapOf("generated_keys" to idList)
         val map = MapObject().with("test", "yay") as MutableMap<String, Any>
-        whenever(table.insert(map)).thenReturn(result)
+        whenever(table.executeQuery(any())).thenReturn(DefaultQueryResponse(result))
 
         val actualId = helper.insertMap(testTableName, map, db)
         Assertions.assertEquals(id, actualId)

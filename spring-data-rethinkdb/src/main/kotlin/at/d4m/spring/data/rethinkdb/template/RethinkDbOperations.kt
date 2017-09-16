@@ -10,6 +10,7 @@ interface RethinkDbOperations {
     val converter: RethinkDbConverter
     fun save(obj: Any, table: String)
     fun <T> find(entityClass: Class<T>, table: String): List<T>
-    fun remove(table: String)
     fun <ID, T> findById(id: ID, entityClass: Class<T>, table: String): T?
+    fun <ID> remove(table: String, id: ID? = null)
+    fun remove(table: String)
 }
