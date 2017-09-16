@@ -41,6 +41,7 @@ class MappingRethinkDbConverter(
     }
 
     override fun <R : Any> read(type: Class<R>, source: MutableMap<String, Any>): R {
+        @Suppress("UNCHECKED_CAST")
         val entity = mappingContext.getRequiredPersistentEntity(type) as RethinkDbPersistentEntity<R>
         val instantiator = instantiators.getInstantiatorFor(entity)
         val propertyProvider = RethinkDbPropertyValueProvider(source)
@@ -61,6 +62,7 @@ class MappingRethinkDbConverter(
         override fun <T : Any?> getPropertyValue(property: RethinkDbPersistentProperty): T? {
             val rawValue = properties[property.name] ?: return null
             val value = conversionService.convert(rawValue, property.typeInformation.type)
+            @Suppress("UNCHECKED_CAST")
             return value as T
         }
     }
