@@ -16,14 +16,14 @@ interface RethinkDbOperations {
     fun <ID, T> findById(id: ID, entityClass: Class<T>, table: String): Maybe<T>
     fun <ID> remove(table: String, id: ID? = null): Completable
     fun remove(table: String): Completable
-    fun <T> changeFeed(entityClass: Class<T>, table: String): Flowable<Change<T>>
+    fun <T> changeFeed(entityClass: Class<T>, table: String): Flowable<RethinkDbChange<T>>
 }
 
-data class Change<out T>(
+data class RethinkDbChange<out T>(
         val value: T?,
-        val event: ChangeEvent
+        val event: RethinkDbChangeEvent
 )
 
-enum class ChangeEvent {
+enum class RethinkDbChangeEvent {
     INITIAL, CREATED, DELETED
 }

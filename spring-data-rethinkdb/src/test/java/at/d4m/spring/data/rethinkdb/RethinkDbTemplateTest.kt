@@ -10,8 +10,8 @@ import at.d4m.rxrethinkdb.query.components.delete
 import at.d4m.rxrethinkdb.query.components.get
 import at.d4m.spring.data.rethinkdb.convert.RethinkDbConverter
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbMappingContext
-import at.d4m.spring.data.rethinkdb.template.Change
-import at.d4m.spring.data.rethinkdb.template.ChangeEvent.*
+import at.d4m.spring.data.rethinkdb.template.RethinkDbChange
+import at.d4m.spring.data.rethinkdb.template.RethinkDbChangeEvent.*
 import at.d4m.spring.data.rethinkdb.template.RethinkDbOperations
 import at.d4m.spring.data.rethinkdb.template.RethinkDbTemplate
 import at.d4m.spring.data.rethinkdb.template.RethinkDbTemplateHelper
@@ -131,11 +131,11 @@ internal class RethinkDbTemplateTest {
     @Test
     fun testChangeFeed() {
         val expected = listOf(
-                Change(SomeClass("0980a800ß", 5), INITIAL),
-                Change(SomeClass("df78sadf7asdfadsf", 0), INITIAL),
-                Change(SomeClass("fasd9f87a976sdf98", 44), CREATED),
-                Change(SomeClass("asfsd34234", 333), DELETED),
-                Change(SomeClass("0980a800ß", 5), CREATED)
+                RethinkDbChange(SomeClass("0980a800ß", 5), INITIAL),
+                RethinkDbChange(SomeClass("df78sadf7asdfadsf", 0), INITIAL),
+                RethinkDbChange(SomeClass("fasd9f87a976sdf98", 44), CREATED),
+                RethinkDbChange(SomeClass("asfsd34234", 333), DELETED),
+                RethinkDbChange(SomeClass("0980a800ß", 5), CREATED)
         )
 
         val input = Flowable.fromIterable(expected.map { changeFeedMap(it) })
@@ -150,7 +150,7 @@ internal class RethinkDbTemplateTest {
 
     }
 
-    private fun changeFeedMap(change: Change<SomeClass>): Map<String, Any> {
+    private fun changeFeedMap(change: RethinkDbChange<SomeClass>): Map<String, Any> {
         val map = mutableMapOf<String, Any?>()
         val changeValueMap = change.value?.toMap()
         when (change.event) {

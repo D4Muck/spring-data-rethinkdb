@@ -1,7 +1,8 @@
 package at.d4m.spring.data.rethinkdb.reactive
 
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbEntityInformation
-import at.d4m.spring.data.rethinkdb.template.Change
+import at.d4m.spring.data.rethinkdb.template.RethinkDbChange
+import at.d4m.spring.data.rethinkdb.template.RethinkDbChangeEvent
 import at.d4m.spring.data.rethinkdb.template.RethinkDbOperations
 import io.reactivex.Completable
 import io.reactivex.Flowable
@@ -14,7 +15,7 @@ import io.reactivex.Single
 class SimpleReactiveRethinkDbRepository<T : Any, ID>(
         private val entityInformation: RethinkDbEntityInformation<T, ID>,
         private val operations: RethinkDbOperations
-) : ReactiveRethinkDbRepository<T, ID> {
+) : RxJava2ChangeFeedRepository<T, ID> {
 
     override fun findAllById(ids: Iterable<ID>): Flowable<T> {
         return Flowable.merge(ids.map { findById(it).toFlowable() })
@@ -84,5 +85,18 @@ class SimpleReactiveRethinkDbRepository<T : Any, ID>(
 
     override fun changeFeed(): Flowable<Change<T>> {
         return operations.changeFeed(entityInformation.javaType, entityInformation.tableName)
+                .map { it.asChange() }
+    }
+
+    private fun <T> RethinkDbChange<T>.asChange(): Change<T> {
+        return Change(this.value, this.event.asChangeEvent())
+    }
+
+    private fun RethinkDbChangeEvent.asChangeEvent(): ChangeEvent {
+        return when (this) {
+            RethinkDbChangeEvent.INITIAL -> ChangeEvent.INITIAL
+            RethinkDbChangeEvent.CREATED -> ChangeEvent.CREATED
+            RethinkDbChangeEvent.DELETED -> ChangeEvent.DELETED
+        }
     }
 }

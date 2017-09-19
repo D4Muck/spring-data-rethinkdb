@@ -7,6 +7,7 @@ import at.d4m.rxrethinkdb.query.components.changes
 import at.d4m.rxrethinkdb.query.components.delete
 import at.d4m.rxrethinkdb.query.components.get
 import at.d4m.spring.data.rethinkdb.convert.RethinkDbConverter
+import at.d4m.spring.data.rethinkdb.template.RethinkDbChangeEvent.*
 import com.rethinkdb.RethinkDB.r
 import io.reactivex.Completable
 import io.reactivex.Flowable
@@ -70,7 +71,7 @@ open class RethinkDbTemplate(
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T> changeFeed(entityClass: Class<T>, table: String): Flowable<Change<T>> {
+    override fun <T> changeFeed(entityClass: Class<T>, table: String): Flowable<RethinkDbChange<T>> {
         return Flowable.defer {
             println("Deferred ${Thread.currentThread().name}")
             db.getTableWithName(table).executeQuery(Query.changes()).responseAsFlowable()
@@ -78,9 +79,9 @@ open class RethinkDbTemplate(
             val newVal = it["new_val"] as Map<String, Any>?
             val oldVal = it["old_val"] as Map<String, Any>?
             when {
-                newVal != null && !it.containsKey("old_val") -> Change(convert(entityClass, newVal), ChangeEvent.INITIAL)
-                newVal != null -> Change(convert(entityClass, newVal), ChangeEvent.CREATED)
-                oldVal != null -> Change(convert(entityClass, oldVal), ChangeEvent.DELETED)
+                newVal != null && !it.containsKey("old_val") -> RethinkDbChange(convert(entityClass, newVal), INITIAL)
+                newVal != null -> RethinkDbChange(convert(entityClass, newVal), CREATED)
+                oldVal != null -> RethinkDbChange(convert(entityClass, oldVal), DELETED)
                 else -> throw RuntimeException()
             }
         }.subscribeOn(Schedulers.io())
