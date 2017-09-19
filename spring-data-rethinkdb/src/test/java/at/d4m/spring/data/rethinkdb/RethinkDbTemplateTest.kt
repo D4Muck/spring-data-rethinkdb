@@ -3,17 +3,23 @@ package at.d4m.spring.data.rethinkdb
 import at.d4m.rxrethinkdb.Database
 import at.d4m.rxrethinkdb.RethinkDBClient
 import at.d4m.rxrethinkdb.Table
-import at.d4m.rxrethinkdb.query.DefaultQueryResponse
 import at.d4m.rxrethinkdb.query.Query
 import at.d4m.rxrethinkdb.query.QueryResponse
+import at.d4m.rxrethinkdb.query.components.changes
 import at.d4m.rxrethinkdb.query.components.delete
+import at.d4m.rxrethinkdb.query.components.get
 import at.d4m.spring.data.rethinkdb.convert.RethinkDbConverter
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbMappingContext
+import at.d4m.spring.data.rethinkdb.template.Change
+import at.d4m.spring.data.rethinkdb.template.ChangeEvent.*
 import at.d4m.spring.data.rethinkdb.template.RethinkDbOperations
 import at.d4m.spring.data.rethinkdb.template.RethinkDbTemplate
 import at.d4m.spring.data.rethinkdb.template.RethinkDbTemplateHelper
 import com.nhaarman.mockito_kotlin.*
-import com.rethinkdb.net.Cursor
+import com.rethinkdb.gen.ast.ReqlExpr
+import io.reactivex.Completable
+import io.reactivex.Flowable
+import io.reactivex.subscribers.TestSubscriber
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -61,7 +67,7 @@ internal class RethinkDbTemplateTest {
 
         whenever(helper.insertMap(eq(tableName), any(), eq(db))).thenReturn(fakeId)
 
-        template.save(testObject, tableName)
+        template.save(testObject, tableName).assertIoScheduler().blockingAwait()
 
         verify(helper).createTableIfNotExists(tableName, db)
         verify(converter).write(eq(testObject), any())
@@ -87,25 +93,80 @@ internal class RethinkDbTemplateTest {
                 SomeClass("asfsd34234", 333)
         )
         val results: List<Map<String, Any>> = expected.map(SomeClass::toMap)
-
-        val both = expected.zip(results)
-
-        val cursor: Cursor<Map<String, Any>> = mock {
-            on { toList() } doReturn results
+        val queryResponse = mock<QueryResponse> {
+            on { responseAsFlowable() } doReturn Flowable.fromIterable(results)
         }
-        whenever(table.executeQuery()).thenReturn(DefaultQueryResponse(cursor))
+
+        whenever(table.executeQuery()).thenReturn(queryResponse)
         val entityClass = SomeClass::class.java
-        both.forEach { (entity, map) ->
-            whenever(converter.read(entityClass, map.toMutableMap())).thenReturn(entity)
+        mockConverterRead(expected)
+
+
+        val subscriber = TestSubscriber<SomeClass>()
+        template.find(entityClass = entityClass, table = tableName).assertIoScheduler().subscribe(subscriber)
+        subscriber.await()
+        subscriber.assertValueSequence(expected)
+    }
+
+    private fun mockConverterRead(entities: List<SomeClass>) {
+        entities.zip(entities.map { it.toMap() }).forEach { (entity, map) ->
+            whenever(converter.read(entity::class.java, map.toMutableMap())).thenReturn(entity)
         }
-        val values: List<SomeClass> = template.find(entityClass = entityClass, table = tableName)
-        Assertions.assertEquals(values, expected)
     }
 
     @Test
     fun testRemove() {
-        template.remove(table = tableName)
-        verify(table).executeQuery(Query.delete())
+        template.remove(table = tableName).assertIoScheduler().blockingAwait()
+        verify(table).executeQuery(Query.empty<ReqlExpr>().delete())
     }
 
+    @Test
+    fun testWithIdRemove() {
+        val id = "587"
+        template.remove(tableName, id).assertIoScheduler().blockingAwait()
+        verify(table).executeQuery(Query.get(id).delete())
+    }
+
+
+    @Test
+    fun testChangeFeed() {
+        val expected = listOf(
+                Change(SomeClass("0980a800ß", 5), INITIAL),
+                Change(SomeClass("df78sadf7asdfadsf", 0), INITIAL),
+                Change(SomeClass("fasd9f87a976sdf98", 44), CREATED),
+                Change(SomeClass("asfsd34234", 333), DELETED),
+                Change(SomeClass("0980a800ß", 5), CREATED)
+        )
+
+        val input = Flowable.fromIterable(expected.map { changeFeedMap(it) })
+        val queryResponse: QueryResponse = mock {
+            on { responseAsFlowable() } doReturn input
+        }
+        whenever(table.executeQuery(Query.changes())).thenReturn(queryResponse)
+        mockConverterRead(expected.mapNotNull { it.value })
+        val changeFeed = template.changeFeed(SomeClass::class.java, tableName).assertIoScheduler()
+        verifyZeroInteractions(db)
+        Assertions.assertEquals(expected, changeFeed.toList().blockingGet())
+
+    }
+
+    private fun changeFeedMap(change: Change<SomeClass>): Map<String, Any> {
+        val map = mutableMapOf<String, Any?>()
+        val changeValueMap = change.value?.toMap()
+        when (change.event) {
+            INITIAL -> {
+                map["new_val"] = changeValueMap
+            }
+            CREATED -> {
+                map["new_val"] = changeValueMap
+                map["old_val"] = null
+            }
+            DELETED -> {
+                map["old_val"] = changeValueMap
+                map["new_val"] = null
+            }
+        }
+        @Suppress("UNCHECKED_CAST")
+        return map as Map<String, Any>
+    }
 }

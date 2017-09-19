@@ -23,7 +23,7 @@ class SimpleRethinkDbRepository<T : Any, ID>(
     }
 
     override fun findAll(): List<T> {
-        return rethinkDbOperations.find(entityInformation.javaType, entityInformation.tableName)
+        return rethinkDbOperations.find(entityInformation.javaType, entityInformation.tableName).toList().blockingGet()
     }
 
     override fun count(): Long {
@@ -31,7 +31,7 @@ class SimpleRethinkDbRepository<T : Any, ID>(
     }
 
     override fun deleteAll() {
-        rethinkDbOperations.remove(entityInformation.tableName)
+        rethinkDbOperations.remove(entityInformation.tableName).blockingAwait()
     }
 
     override fun deleteAll(entities: Iterable<T>) {
@@ -44,11 +44,11 @@ class SimpleRethinkDbRepository<T : Any, ID>(
 
     override fun findById(id: ID): Optional<T> {
         val entity = rethinkDbOperations.findById(id, entityInformation.javaType, entityInformation.tableName)
-        return Optional.ofNullable(entity)
+        return Optional.ofNullable(entity.blockingGet())
     }
 
     override fun <S : T> save(entity: S): S {
-        rethinkDbOperations.save(entity, entityInformation.tableName)
+        rethinkDbOperations.save(entity, entityInformation.tableName).blockingAwait()
         return entity
     }
 
@@ -57,7 +57,7 @@ class SimpleRethinkDbRepository<T : Any, ID>(
     }
 
     override fun deleteById(id: ID) {
-        rethinkDbOperations.remove(entityInformation.tableName, id)
+        rethinkDbOperations.remove(entityInformation.tableName, id).blockingAwait()
     }
 
     override fun findAllById(ids: Iterable<ID>): Iterable<T> {
