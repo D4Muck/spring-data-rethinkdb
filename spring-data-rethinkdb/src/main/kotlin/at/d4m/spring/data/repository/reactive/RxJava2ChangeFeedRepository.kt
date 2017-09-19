@@ -1,6 +1,5 @@
-package at.d4m.spring.data.rethinkdb.reactive
+package at.d4m.spring.data.repository.reactive
 
-import at.d4m.spring.data.rethinkdb.template.RethinkDbChange
 import io.reactivex.Flowable
 import org.springframework.data.repository.reactive.RxJava2CrudRepository
 

@@ -1,5 +1,8 @@
 package at.d4m.spring.data.rethinkdb.reactive
 
+import at.d4m.spring.data.repository.reactive.Change
+import at.d4m.spring.data.repository.reactive.ChangeEvent
+import at.d4m.spring.data.repository.reactive.RxJava2ChangeFeedRepository
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbEntityInformation
 import at.d4m.spring.data.rethinkdb.template.RethinkDbChange
 import at.d4m.spring.data.rethinkdb.template.RethinkDbChangeEvent
