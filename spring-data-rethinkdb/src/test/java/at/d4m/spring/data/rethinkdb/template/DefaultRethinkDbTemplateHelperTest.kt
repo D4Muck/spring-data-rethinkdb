@@ -100,7 +100,7 @@ internal class DefaultRethinkDbTemplateHelperTest {
         val result = mapOf("generated_keys" to idList)
         @Suppress("UNCHECKED_CAST")
         val map = MapObject().with("test", "yay") as MutableMap<String, Any>
-        whenever(table.executeQuery(any())).thenReturn(DefaultQueryResponse { result })
+        whenever(table.executeQuery(any())).thenReturn(DefaultQueryResponse(result))
 
         val actualId = helper.insertMap(testTableName, map, db)
         Assertions.assertEquals(id, actualId)

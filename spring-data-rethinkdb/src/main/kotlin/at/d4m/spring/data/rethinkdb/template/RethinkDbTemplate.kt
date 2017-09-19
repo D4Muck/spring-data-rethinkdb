@@ -23,7 +23,7 @@ open class RethinkDbTemplate(
     private val db: Database = client.getDatabaseWithName(databaseName)
 
     override fun save(obj: Any, table: String): Completable {
-        return Completable.create {
+        return Completable.defer {
             helper.createTableIfNotExists(table, db)
 
             @Suppress("UNCHECKED_CAST")
@@ -32,7 +32,7 @@ open class RethinkDbTemplate(
 
             val generatedId = helper.insertMap(table, hashMap, db)
             helper.populateIdIfNecessary(obj, generatedId, converter.mappingContext)
-            it.onComplete()
+            Completable.complete()
         }.subscribeOn(Schedulers.io())
     }
 
@@ -46,10 +46,10 @@ open class RethinkDbTemplate(
     }
 
     override fun <ID> remove(table: String, id: ID?): Completable {
-        return Completable.create {
+        return Completable.defer {
             val query = if (id != null) Query.get(id.toString()) else Query.empty()
             db.getTableWithName(table).executeQuery(query.delete())
-            it.onComplete()
+            Completable.complete()
         }.subscribeOn(Schedulers.io())
     }
 
@@ -58,13 +58,13 @@ open class RethinkDbTemplate(
     }
 
     override fun <ID, T> findById(id: ID, entityClass: Class<T>, table: String): Maybe<T> {
-        return Maybe.create<Map<String, Any>> {
+        return Maybe.defer<Map<String, Any>> {
             val idStr = id.toString()
             val rawEntity = db.getTableWithName(table).executeQuery(Query.get(idStr)).responseAsOptionalMap()
             if (rawEntity != null) {
-                it.onSuccess(rawEntity)
+                Maybe.just(rawEntity)
             } else {
-                it.onComplete()
+                Maybe.empty()
             }
         }.map { convert(entityClass, it) }.subscribeOn(Schedulers.io())
     }
