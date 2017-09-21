@@ -24,22 +24,25 @@ open class RethinkDbTemplate(
     private val db: Database = client.getDatabaseWithName(databaseName)
 
     override fun save(obj: Any, table: String): Completable {
-        return Completable.defer {
-            helper.createTableIfNotExists(table, db)
-
-            @Suppress("UNCHECKED_CAST")
-            val hashMap = r.hashMap() as MutableMap<String, Any>
-            converter.write(obj, hashMap)
-
-            val generatedId = helper.insertMap(table, hashMap, db)
-            helper.populateIdIfNecessary(obj, generatedId, converter.mappingContext)
-            Completable.complete()
-        }.subscribeOn(Schedulers.io())
+        return Completable.fromAction { helper.createTableIfNotExists(table, db) }
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.computation())
+                .toSingle {
+                    @Suppress("UNCHECKED_CAST")
+                    val hashMap = r.hashMap() as MutableMap<String, Any>
+                    converter.write(obj, hashMap)
+                    hashMap
+                }
+                .observeOn(Schedulers.io())
+                .map { helper.insertMap(table, it, db) }
+                .observeOn(Schedulers.computation())
+                .map { helper.populateIdIfNecessary(obj, it, converter.mappingContext) }
+                .toCompletable()
     }
 
     override fun <T> find(entityClass: Class<T>, table: String): Flowable<T> {
         return Flowable.defer { db.getTableWithName(table).executeQuery().responseAsFlowable() }
-                .map { convert(entityClass, it) }.subscribeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io()).observeOn(Schedulers.computation()).map { convert(entityClass, it) }
     }
 
     private fun <T> convert(entityClass: Class<T>, obj: Map<String, Any>): T {
@@ -47,11 +50,10 @@ open class RethinkDbTemplate(
     }
 
     override fun <ID> remove(table: String, id: ID?): Completable {
-        return Completable.defer {
+        return Completable.fromAction {
             val query = if (id != null) Query.get(id.toString()) else Query.empty()
             db.getTableWithName(table).executeQuery(query.delete())
-            Completable.complete()
-        }.subscribeOn(Schedulers.io())
+        }.subscribeOn(Schedulers.io()).observeOn(Schedulers.computation())
     }
 
     override fun remove(table: String): Completable {
@@ -59,15 +61,10 @@ open class RethinkDbTemplate(
     }
 
     override fun <ID, T> findById(id: ID, entityClass: Class<T>, table: String): Maybe<T> {
-        return Maybe.defer<Map<String, Any>> {
+        return Maybe.fromCallable<Map<String, Any>> {
             val idStr = id.toString()
-            val rawEntity = db.getTableWithName(table).executeQuery(Query.get(idStr)).responseAsOptionalMap()
-            if (rawEntity != null) {
-                Maybe.just(rawEntity)
-            } else {
-                Maybe.empty()
-            }
-        }.map { convert(entityClass, it) }.subscribeOn(Schedulers.io())
+            db.getTableWithName(table).executeQuery(Query.get(idStr)).responseAsOptionalMap()
+        }.subscribeOn(Schedulers.io()).observeOn(Schedulers.computation()).map { convert(entityClass, it) }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -75,15 +72,19 @@ open class RethinkDbTemplate(
         return Flowable.defer {
             println("Deferred ${Thread.currentThread().name}")
             db.getTableWithName(table).executeQuery(Query.changes()).responseAsFlowable()
-        }.map {
-            val newVal = it["new_val"] as Map<String, Any>?
-            val oldVal = it["old_val"] as Map<String, Any>?
-            when {
-                newVal != null && !it.containsKey("old_val") -> RethinkDbChange(convert(entityClass, newVal), INITIAL)
-                newVal != null -> RethinkDbChange(convert(entityClass, newVal), CREATED)
-                oldVal != null -> RethinkDbChange(convert(entityClass, oldVal), DELETED)
-                else -> throw RuntimeException()
-            }
-        }.subscribeOn(Schedulers.io())
+        }
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.computation())
+                .map {
+                    println("Map ${Thread.currentThread().name}")
+                    val newVal = it["new_val"] as Map<String, Any>?
+                    val oldVal = it["old_val"] as Map<String, Any>?
+                    when {
+                        newVal != null && !it.containsKey("old_val") -> RethinkDbChange(convert(entityClass, newVal), INITIAL)
+                        newVal != null -> RethinkDbChange(convert(entityClass, newVal), CREATED)
+                        oldVal != null -> RethinkDbChange(convert(entityClass, oldVal), DELETED)
+                        else -> throw RuntimeException()
+                    }
+                }
     }
 }

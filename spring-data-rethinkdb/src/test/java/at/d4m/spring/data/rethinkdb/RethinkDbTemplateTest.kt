@@ -67,7 +67,7 @@ internal class RethinkDbTemplateTest {
 
         whenever(helper.insertMap(eq(tableName), any(), eq(db))).thenReturn(fakeId)
 
-        template.save(testObject, tableName).assertIoScheduler().blockingAwait()
+        template.save(testObject, tableName).assertComputationScheduler().blockingAwait()
 
         verify(helper).createTableIfNotExists(tableName, db)
         verify(converter).write(eq(testObject), any())
@@ -103,7 +103,9 @@ internal class RethinkDbTemplateTest {
 
 
         val subscriber = TestSubscriber<SomeClass>()
-        template.find(entityClass = entityClass, table = tableName).assertIoScheduler().subscribe(subscriber)
+        template.find(entityClass = entityClass, table = tableName)
+                .doOnComplete { print("Complete ${Thread.currentThread().name}") }
+                .assertComputationScheduler().subscribe(subscriber)
         subscriber.await()
         subscriber.assertValueSequence(expected)
     }
@@ -116,14 +118,14 @@ internal class RethinkDbTemplateTest {
 
     @Test
     fun testRemove() {
-        template.remove(table = tableName).assertIoScheduler().blockingAwait()
+        template.remove(table = tableName).assertComputationScheduler().blockingAwait()
         verify(table).executeQuery(Query.empty<ReqlExpr>().delete())
     }
 
     @Test
     fun testWithIdRemove() {
         val id = "587"
-        template.remove(tableName, id).assertIoScheduler().blockingAwait()
+        template.remove(tableName, id).assertComputationScheduler().blockingAwait()
         verify(table).executeQuery(Query.get(id).delete())
     }
 
@@ -144,10 +146,9 @@ internal class RethinkDbTemplateTest {
         }
         whenever(table.executeQuery(Query.changes())).thenReturn(queryResponse)
         mockConverterRead(expected.mapNotNull { it.value })
-        val changeFeed = template.changeFeed(SomeClass::class.java, tableName).assertIoScheduler()
+        val changeFeed = template.changeFeed(SomeClass::class.java, tableName).assertComputationScheduler()
         verifyZeroInteractions(db)
         Assertions.assertEquals(expected, changeFeed.toList().blockingGet())
-
     }
 
     private fun changeFeedMap(change: RethinkDbChange<SomeClass>): Map<String, Any> {

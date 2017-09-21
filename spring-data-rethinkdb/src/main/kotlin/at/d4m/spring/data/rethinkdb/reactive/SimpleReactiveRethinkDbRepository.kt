@@ -54,7 +54,6 @@ class SimpleReactiveRethinkDbRepository<T : Any, ID>(
 
     override fun deleteById(id: ID): Completable {
         return operations.remove(entityInformation.tableName, id)
-
     }
 
     override fun deleteAll(entityStream: Flowable<out T>): Completable {
