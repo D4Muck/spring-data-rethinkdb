@@ -19,7 +19,7 @@ class RethinkDbRepositoryFactory(
     val mappingContext = operations.converter.mappingContext
 
     @Suppress("UNCHECKED_CAST")
-    override fun <T : Any?, ID : Any?> getEntityInformation(domainClass: Class<T>?): RethinkDbEntityInformation<T, ID> {
+    override fun <T : Any?, ID : Any?> getEntityInformation(domainClass: Class<T>): RethinkDbEntityInformation<T, ID> {
         val persistentEntity = mappingContext.getRequiredPersistentEntity(domainClass) as RethinkDbPersistentEntity<T>
         return MappingRethinkDbEntityInformation<T, ID>(persistentEntity)
     }

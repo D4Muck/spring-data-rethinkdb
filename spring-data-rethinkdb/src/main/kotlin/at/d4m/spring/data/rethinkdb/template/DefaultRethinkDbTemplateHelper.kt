@@ -25,8 +25,10 @@ class DefaultRethinkDbTemplateHelper : RethinkDbTemplateHelper {
         id?.let {
             val entity = mappingContext.getRequiredPersistentEntity(obj::class.java)
             val idProperty = entity.idProperty
-            val accessor = entity.getPropertyAccessor(obj)
-            accessor.setProperty(idProperty, it)
+            if (idProperty != null) {
+                val accessor = entity.getPropertyAccessor(obj)
+                accessor.setProperty(idProperty, it)
+            }
         }
     }
 

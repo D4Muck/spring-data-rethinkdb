@@ -2,7 +2,7 @@ group 'at.d4m.spring'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.1.4-3'
+    ext.kotlin_version = '1.1.51'
     ext.spring_framework_version = '5.0.0.RC4'
     ext.junitPlatformVersion = '1.0.0'
     ext.junitJupiterVersion  = '5.0.0'

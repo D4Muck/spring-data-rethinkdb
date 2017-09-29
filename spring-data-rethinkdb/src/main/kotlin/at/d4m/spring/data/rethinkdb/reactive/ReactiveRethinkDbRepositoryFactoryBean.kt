@@ -9,7 +9,7 @@ import java.io.Serializable
 /**
  * @author Christoph Muck
  */
-class ReactiveRethinkDbRepositoryFactoryBean<T : Repository<S, ID>, S, ID : Serializable>(repositoryInterface: Class<out T>?)
+class ReactiveRethinkDbRepositoryFactoryBean<T : Repository<S, ID>, S, ID : Serializable>(repositoryInterface: Class<out T>)
     : RepositoryFactoryBeanSupport<T, S, ID>(repositoryInterface) {
 
     private lateinit var operations: RethinkDbOperations

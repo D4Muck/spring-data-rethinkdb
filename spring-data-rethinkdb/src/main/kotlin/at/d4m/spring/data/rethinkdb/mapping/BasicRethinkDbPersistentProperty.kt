@@ -10,9 +10,9 @@ import org.springframework.data.mapping.model.SimpleTypeHolder
  * @author Christoph Muck
  */
 class BasicRethinkDbPersistentProperty(
-        property: Property?,
-        owner: PersistentEntity<*, RethinkDbPersistentProperty>?,
-        simpleTypeHolder: SimpleTypeHolder?
+        property: Property,
+        owner: PersistentEntity<*, RethinkDbPersistentProperty>,
+        simpleTypeHolder: SimpleTypeHolder
 ) : AnnotationBasedPersistentProperty<RethinkDbPersistentProperty>(property, owner, simpleTypeHolder),
         RethinkDbPersistentProperty {
 
