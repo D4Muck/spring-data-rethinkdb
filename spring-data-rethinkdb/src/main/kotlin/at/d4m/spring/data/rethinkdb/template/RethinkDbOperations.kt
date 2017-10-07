@@ -11,7 +11,7 @@ import io.reactivex.Maybe
 
 interface RethinkDbOperations {
     val converter: RethinkDbConverter
-    fun save(obj: Any, table: String): Completable
+    fun insert(obj: Any, table: String): Completable
     fun <T> find(entityClass: Class<T>, table: String): Flowable<T>
     fun <ID, T> findById(id: ID, entityClass: Class<T>, table: String): Maybe<T>
     fun <ID> remove(table: String, id: ID? = null): Completable

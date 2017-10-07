@@ -17,7 +17,6 @@ import at.d4m.spring.data.rethinkdb.template.RethinkDbTemplate
 import at.d4m.spring.data.rethinkdb.template.RethinkDbTemplateHelper
 import com.nhaarman.mockito_kotlin.*
 import com.rethinkdb.gen.ast.ReqlExpr
-import io.reactivex.Completable
 import io.reactivex.Flowable
 import io.reactivex.subscribers.TestSubscriber
 import org.junit.jupiter.api.Assertions
@@ -60,14 +59,14 @@ internal class RethinkDbTemplateTest {
     }
 
     @Test
-    fun testSave() {
+    fun testInsert() {
         val tableName = "test"
         val fakeId = "98324394579234757"
         val testObject = Any()
 
         whenever(helper.insertMap(eq(tableName), any(), eq(db))).thenReturn(fakeId)
 
-        template.save(testObject, tableName).assertComputationScheduler().blockingAwait()
+        template.insert(testObject, tableName).assertComputationScheduler().blockingAwait()
 
         verify(helper).createTableIfNotExists(tableName, db)
         verify(converter).write(eq(testObject), any())

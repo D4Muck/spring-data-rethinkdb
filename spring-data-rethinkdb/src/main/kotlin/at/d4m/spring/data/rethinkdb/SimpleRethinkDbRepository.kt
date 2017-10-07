@@ -48,7 +48,7 @@ class SimpleRethinkDbRepository<T : Any, ID>(
     }
 
     override fun <S : T> save(entity: S): S {
-        rethinkDbOperations.save(entity, entityInformation.tableName).blockingAwait()
+        rethinkDbOperations.insert(entity, entityInformation.tableName).blockingAwait()
         return entity
     }
 

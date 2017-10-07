@@ -69,7 +69,7 @@ class SimpleReactiveRethinkDbRepository<T : Any, ID>(
     }
 
     override fun <S : T> save(entity: S): Single<S> {
-        return operations.save(entity, entityInformation.tableName)
+        return operations.insert(entity, entityInformation.tableName)
                 .toSingle { entity }
     }
 

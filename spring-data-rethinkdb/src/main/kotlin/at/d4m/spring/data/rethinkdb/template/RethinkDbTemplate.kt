@@ -23,7 +23,7 @@ open class RethinkDbTemplate(
 
     private val db: Database = client.getDatabaseWithName(databaseName)
 
-    override fun save(obj: Any, table: String): Completable {
+    override fun insert(obj: Any, table: String): Completable {
         return Completable.fromAction { helper.createTableIfNotExists(table, db) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())
