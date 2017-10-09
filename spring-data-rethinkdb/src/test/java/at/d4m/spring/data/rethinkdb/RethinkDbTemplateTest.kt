@@ -18,6 +18,8 @@ import at.d4m.spring.data.rethinkdb.template.RethinkDbTemplateHelper
 import com.nhaarman.mockito_kotlin.*
 import com.rethinkdb.gen.ast.ReqlExpr
 import io.reactivex.Flowable
+import io.reactivex.Single
+import io.reactivex.SingleTransformer
 import io.reactivex.subscribers.TestSubscriber
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
@@ -64,9 +66,9 @@ internal class RethinkDbTemplateTest {
         val fakeId = "98324394579234757"
         val testObject = Any()
 
-        whenever(helper.insertMap(eq(tableName), any(), eq(db))).thenReturn(fakeId)
+        whenever(helper.insertMap(tableName, db)).thenReturn(SingleTransformer { it.map { fakeId } })
 
-        template.insert(testObject, tableName).assertComputationScheduler().blockingAwait()
+        template.insert(testObject, tableName).assertComputationScheduler().test().await().assertComplete()
 
         verify(helper).createTableIfNotExists(tableName, db)
         verify(converter).write(eq(testObject), any())

@@ -3,8 +3,10 @@ package at.d4m.spring.data.rethinkdb.template
 import at.d4m.rxrethinkdb.Database
 import at.d4m.rxrethinkdb.RethinkDBClient
 import at.d4m.rxrethinkdb.query.Query
-import at.d4m.rxrethinkdb.query.components.insert
+import at.d4m.rxrethinkdb.query.components.*
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbMappingContext
+import io.reactivex.CompletableTransformer
+import io.reactivex.SingleTransformer
 
 class DefaultRethinkDbTemplateHelper : RethinkDbTemplateHelper {
 
@@ -16,9 +18,27 @@ class DefaultRethinkDbTemplateHelper : RethinkDbTemplateHelper {
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun insertMap(tableName: String, map: Map<String, Any>, db: Database): String? {
-        val saveResult = db.getTableWithName(tableName).executeQuery(Query.insert(map)).responseAsMap()
-        return (saveResult["generated_keys"] as? List<String>)?.firstOrNull()
+    override fun insertMap(tableName: String, db: Database): SingleTransformer<Map<String, Any>, String> {
+        return SingleTransformer {
+            it.map {
+                val saveResult = db.getTableWithName(tableName).executeQuery(Query.insert(it)).responseAsMap()
+                return@map (saveResult["generated_keys"] as? List<String>)?.firstOrNull()
+                        ?: throw RuntimeException("Error while inserting: $saveResult")
+            }
+        }
+    }
+
+    override fun replaceMap(tableName: String, db: Database): SingleTransformer<Map<String, Any>, Unit> {
+        return SingleTransformer {
+            it.map {
+                val id = it["id"] ?: throw RuntimeException("'$it' does not have an id!")
+                val saveResult = db.getTableWithName(tableName).executeQuery(Query.get(id).replace(it)).responseAsMap()
+                println(saveResult)
+                val error = (saveResult["first_error"] as? String)
+                error?.let { throw RuntimeException("Error while replacing: $error") }
+                return@map Unit
+            }
+        }
     }
 
     override fun populateIdIfNecessary(obj: Any, id: String?, mappingContext: RethinkDbMappingContext) {

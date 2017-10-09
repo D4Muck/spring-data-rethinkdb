@@ -12,6 +12,7 @@ import com.rethinkdb.RethinkDB.r
 import io.reactivex.Completable
 import io.reactivex.Flowable
 import io.reactivex.Maybe
+import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 
 open class RethinkDbTemplate(
@@ -24,6 +25,26 @@ open class RethinkDbTemplate(
     private val db: Database = client.getDatabaseWithName(databaseName)
 
     override fun insert(obj: Any, table: String): Completable {
+        return Completable.fromAction {
+            print("hallo")
+            helper.createTableIfNotExists(table, db)
+        }
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.computation())
+                .toSingle {
+                    @Suppress("UNCHECKED_CAST")
+                    val hashMap = r.hashMap() as MutableMap<String, Any>
+                    converter.write(obj, hashMap)
+                    hashMap
+                }
+                .observeOn(Schedulers.io())
+                .compose(helper.insertMap(table, db))
+                .observeOn(Schedulers.computation())
+                .map { helper.populateIdIfNecessary(obj, it, converter.mappingContext) }
+                .toCompletable()
+    }
+
+    override fun replace(obj: Any, table: String): Completable {
         return Completable.fromAction { helper.createTableIfNotExists(table, db) }
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())
@@ -34,9 +55,9 @@ open class RethinkDbTemplate(
                     hashMap
                 }
                 .observeOn(Schedulers.io())
-                .map { helper.insertMap(table, it, db) }
+                .compose(helper.replaceMap(table, db))
                 .observeOn(Schedulers.computation())
-                .map { helper.populateIdIfNecessary(obj, it, converter.mappingContext) }
+//                .map { helper.populateIdIfNecessary(obj, it, converter.mappingContext) }ñ
                 .toCompletable()
     }
 
@@ -52,7 +73,13 @@ open class RethinkDbTemplate(
     override fun <ID> remove(table: String, id: ID?): Completable {
         return Completable.fromAction {
             val query = if (id != null) Query.get(id.toString()) else Query.empty()
-            db.getTableWithName(table).executeQuery(query.delete())
+            val result = db.getTableWithName(table).executeQuery(query.delete()).responseAsMap()
+            print(result)
+            (result["skipped"] as? Long)?.let {
+                if (it > 0) {
+                    throw IdNotFoundException(id)
+                }
+            }
         }.subscribeOn(Schedulers.io()).observeOn(Schedulers.computation())
     }
 
@@ -70,20 +97,22 @@ open class RethinkDbTemplate(
     @Suppress("UNCHECKED_CAST")
     override fun <T> changeFeed(entityClass: Class<T>, table: String): Flowable<RethinkDbChange<T>> {
         return Flowable.defer {
-            println("Deferred ${Thread.currentThread().name}")
             db.getTableWithName(table).executeQuery(Query.changes()).responseAsFlowable()
         }
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())
                 .map {
-                    println("Map ${Thread.currentThread().name}")
+                    val type = it["type"] as String
+
                     val newVal = it["new_val"] as Map<String, Any>?
                     val oldVal = it["old_val"] as Map<String, Any>?
-                    when {
-                        newVal != null && !it.containsKey("old_val") -> RethinkDbChange(convert(entityClass, newVal), INITIAL)
-                        newVal != null -> RethinkDbChange(convert(entityClass, newVal), CREATED)
-                        oldVal != null -> RethinkDbChange(convert(entityClass, oldVal), DELETED)
-                        else -> throw RuntimeException()
+
+                    when (type) {
+                        "add" -> RethinkDbChange(convert(entityClass, newVal!!), CREATED)
+                        "remove" -> RethinkDbChange(convert(entityClass, oldVal!!), DELETED)
+                        "change" -> RethinkDbChange(convert(entityClass, newVal!!), UPDATED)
+                        "initial" -> RethinkDbChange(convert(entityClass, newVal!!), INITIAL)
+                        else -> throw RuntimeException("Unrecognized state: $type")
                     }
                 }
     }

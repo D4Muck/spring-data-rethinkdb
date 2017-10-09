@@ -9,6 +9,7 @@ import at.d4m.spring.data.rethinkdb.mapping.RethinkDbMappingContext
 import at.d4m.spring.data.rethinkdb.mapping.RethinkDbPersistentProperty
 import com.nhaarman.mockito_kotlin.*
 import com.rethinkdb.model.MapObject
+import io.reactivex.Single
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -102,7 +103,8 @@ internal class DefaultRethinkDbTemplateHelperTest {
         val map = MapObject().with("test", "yay") as MutableMap<String, Any>
         whenever(table.executeQuery(any())).thenReturn(DefaultQueryResponse(result))
 
-        val actualId = helper.insertMap(testTableName, map, db)
+        val transformer = helper.insertMap(testTableName, db)
+        val actualId = Single.just(map).compose(transformer).blockingGet()
         Assertions.assertEquals(id, actualId)
     }
 

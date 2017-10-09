@@ -16,5 +16,5 @@ data class Change<out T>(
 )
 
 enum class ChangeEvent {
-    INITIAL, CREATED, DELETED
+    INITIAL, CREATED, DELETED, UPDATED
 }

@@ -17,6 +17,7 @@ interface RethinkDbOperations {
     fun <ID> remove(table: String, id: ID? = null): Completable
     fun remove(table: String): Completable
     fun <T> changeFeed(entityClass: Class<T>, table: String): Flowable<RethinkDbChange<T>>
+    fun replace(obj: Any, table: String): Completable
 }
 
 data class RethinkDbChange<out T>(
@@ -25,5 +26,5 @@ data class RethinkDbChange<out T>(
 )
 
 enum class RethinkDbChangeEvent {
-    INITIAL, CREATED, DELETED
+    INITIAL, CREATED, DELETED, UPDATED
 }

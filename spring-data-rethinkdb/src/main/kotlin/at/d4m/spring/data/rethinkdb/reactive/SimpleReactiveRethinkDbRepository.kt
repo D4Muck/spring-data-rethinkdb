@@ -69,8 +69,15 @@ class SimpleReactiveRethinkDbRepository<T : Any, ID>(
     }
 
     override fun <S : T> save(entity: S): Single<S> {
-        return operations.insert(entity, entityInformation.tableName)
-                .toSingle { entity }
+        val operation: Completable
+
+        if (entityInformation.isNew(entity)) {
+            operation = operations.insert(entity, entityInformation.tableName)
+        } else {
+            operation = operations.replace(entity, entityInformation.tableName)
+        }
+
+        return operation.toSingle { entity }
     }
 
     override fun count(): Single<Long> {
@@ -99,6 +106,7 @@ class SimpleReactiveRethinkDbRepository<T : Any, ID>(
             RethinkDbChangeEvent.INITIAL -> ChangeEvent.INITIAL
             RethinkDbChangeEvent.CREATED -> ChangeEvent.CREATED
             RethinkDbChangeEvent.DELETED -> ChangeEvent.DELETED
+            RethinkDbChangeEvent.UPDATED -> ChangeEvent.UPDATED
         }
     }
 }
