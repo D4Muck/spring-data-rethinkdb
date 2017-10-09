@@ -74,7 +74,6 @@ open class RethinkDbTemplate(
         return Completable.fromAction {
             val query = if (id != null) Query.get(id.toString()) else Query.empty()
             val result = db.getTableWithName(table).executeQuery(query.delete()).responseAsMap()
-            print(result)
             (result["skipped"] as? Long)?.let {
                 if (it > 0) {
                     throw IdNotFoundException(id)

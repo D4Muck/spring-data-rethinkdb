@@ -119,15 +119,17 @@ internal class RethinkDbTemplateTest {
 
     @Test
     fun testRemove() {
-        template.remove(table = tableName).assertComputationScheduler().blockingAwait()
-        verify(table).executeQuery(Query.empty<ReqlExpr>().delete())
+        val queryResponse = mock<QueryResponse> { on { responseAsMap() } doReturn mapOf("skipped" to 0L) }
+        whenever(table.executeQuery(Query.empty<ReqlExpr>().delete())).thenReturn(queryResponse)
+        template.remove(table = tableName).assertComputationScheduler().test().await().assertComplete()
     }
 
     @Test
     fun testWithIdRemove() {
+        val queryResponse = mock<QueryResponse> { on { responseAsMap() } doReturn mapOf("skipped" to 0L) }
         val id = "587"
+        whenever(table.executeQuery(Query.get(id).delete())).thenReturn(queryResponse)
         template.remove(tableName, id).assertComputationScheduler().blockingAwait()
-        verify(table).executeQuery(Query.get(id).delete())
     }
 
 
@@ -157,13 +159,16 @@ internal class RethinkDbTemplateTest {
         val changeValueMap = change.value?.toMap()
         when (change.event) {
             INITIAL -> {
+                map["type"] = "initial"
                 map["new_val"] = changeValueMap
             }
             CREATED -> {
+                map["type"] = "add"
                 map["new_val"] = changeValueMap
                 map["old_val"] = null
             }
             DELETED -> {
+                map["type"] = "remove"
                 map["old_val"] = changeValueMap
                 map["new_val"] = null
             }
