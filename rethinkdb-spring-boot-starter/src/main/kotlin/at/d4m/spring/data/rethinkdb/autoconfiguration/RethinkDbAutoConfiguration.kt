@@ -20,8 +20,14 @@ open class RethinkDbAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    open fun rethinkDbConnection(): Connection {
-        val connection = RethinkDB.r.connection().connect()
+    open fun rethinkDbHostname(): String = "localhost"
+
+    @Bean
+    @ConditionalOnMissingBean
+    open fun rethinkDbConnection(rethinkDbHostname: String): Connection {
+        val connection = RethinkDB.r.connection()
+                .hostname(rethinkDbHostname)
+                .connect()
         this.connection = connection
         return connection
     }
