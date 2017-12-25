@@ -2,8 +2,8 @@ group 'at.d4m.spring'
 version '1.0-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.1.51'
-    ext.spring_boot_version = '2.0.0.M4'
+    ext.kotlin_version = '1.2.10'
+    ext.spring_boot_version = '2.0.0.M7'
 
     repositories {
         mavenCentral()
