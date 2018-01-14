@@ -26,20 +26,15 @@ open class RethinkDbTemplate(
 
     override fun insert(obj: Any, table: String): Completable {
         return Completable.fromAction {
-            print("hallo")
             helper.createTableIfNotExists(table, db)
         }
-                .subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.computation())
                 .toSingle {
                     @Suppress("UNCHECKED_CAST")
                     val hashMap = r.hashMap() as MutableMap<String, Any>
                     converter.write(obj, hashMap)
                     hashMap
                 }
-                .observeOn(Schedulers.io())
                 .compose(helper.insertMap(table, db))
-                .observeOn(Schedulers.computation())
                 .map { helper.populateIdIfNecessary(obj, it, converter.mappingContext) }
                 .toCompletable()
     }
